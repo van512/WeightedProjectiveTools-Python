@@ -9,7 +9,7 @@ from scipy.special import comb # type: ignore
 #import time
 
 
-"""Provides some tools and functions to perform calculations in the context of weighted projective space."""
+"""Provides some functions and classes to perform calculations in the context of weighted projective space."""
 
 
 def dimrec(a: list, d: int) -> int:
@@ -117,100 +117,10 @@ def reduce_arr(func, arr: list) -> list:
     return output
 
 
-class Weights:
-    """
-    Represents a list of weights and computes its reduced and well-formed equivalents
-    """
-    def __init__(self, weights: list):
-        weights.sort() # sort the weights 
-        self.weights = np.array(weights)
-        # Compute the greatest common divisor (GCD) of all weights
-        self.pgcd = np.array(np.gcd.reduce(weights))
-        # Compute the reduced weights by dividing each weight by the GCD
-        self.reduced_weights = np.array((weights / self.pgcd).astype(int))
-        # Compute GCDs of the reduced weights with each element removed
-        self.S = np.array(reduce_arr(np.gcd, self.reduced_weights))
-        # Compute the least common multiples (LCM) of these GCDs
-        self.Q = np.array(reduce_arr(np.lcm, self.S))
-        # Calculate the well-formed weights
-        self.wellformed_weights = np.array((self.reduced_weights / self.Q).astype(int))
-        # Compute the LCM of S
-        self.q = np.array(np.lcm.reduce(self.S))
-        # lcm of the weights
-       # self.a = np.array(np.lcm.reduce(self.weights))
-
-
-class LinearSystem:
-    """
-    Represents a linear system and reduces it when possible, calculates its dimension.
-    """
-    def __init__(self, W: Weights, degree: int):
-        self.W = W  # Associated weight class
-        self.degree = degree  # Original degree before weight reduction
-        
-        self.isreducible = None
-        self.reduced_degree = None
-        self.wellformed_degree = None
-
-        # Calculate the well-formed degree if possible
-        self.form_well_degree()
-
-        # Computes the dimension on the normalized weights and degree (normalized = reduced + well-formed)
-        if self.wellformed_degree is not None:
-            self.dimension = dimrec(self.W.wellformed_weights, self.wellformed_degree)
-        else :
-            self.dimension = dimrec(self.W.weights, self.degree)
-
-    def form_well_degree(self):
-        """
-        Computes the well-formed degree if the degree can be reduced.
-        """
-        temp = self.degree / self.W.pgcd
-        precision = 1e-10
-        
-        # Check if the reduced degree is effectively an integer (handles floating-point precision)
-        if abs(temp - int(temp)) < precision:
-            # 
-            self.isreducible = True
-
-            # Set the reduced degree
-            self.reduced_degree = int(temp)
-            
-            # Calculate unique bi values for each (ai, si) pair
-            self.B = [uniquebi(ai, si, self.reduced_degree) for ai, si in zip(self.W.reduced_weights, self.W.S)]
-            
-            # Compute the well-formed degree using the formula: phi(d) in the thesis
-            self.wellformed_degree = (self.reduced_degree - np.dot(self.B, self.W.reduced_weights)) / self.W.q
-
-        else:
-            self.isreducible = False
-
-    
-    #def is_ample(self):
-    #    if self.wellformed_degree is not None:
-    #       return self.wellformed_degree == np.array(np.lcm.reduce(self.W.wellformed_weights)) and self.wellformed_degree > 0
-    #    else:
-    #        return self.degree == np.array(np.lcm.reduce(self.W.weights)) and self.degree > 0
-
-    #def is_very_ample(self):
-
-#class TwistedSheaf(LinearSystem):
-#    def __init__(self, degree: int, weights: Weights):
-#        super().__init__(weights, degree)
-        
-    #def is_ample(self):
-     #   if self.degree == np.array(np.lcm.reduce(self.W.self.weights))
-    #def is_very_ample(self):
-        # Check if the sheaf is very ample
-
-
-
-####  to check very ampleness
-
 def very_ample_bound(weights:NDArray[np.int32]):
-    # G(Q) G(a) for us
+    # G(Q), G(a) for us
 
-        # Function to calculate LCM of a list using numpy's np.lcm.reduce
+    # Function to calculate LCM of a list using numpy's np.lcm.reduce
     @lru_cache(None)  # Memoize this function to avoid recomputing the same sublist
     def memoized_lcm(weights_sublist):
         return np.lcm.reduce(weights_sublist)
@@ -222,7 +132,7 @@ def very_ample_bound(weights:NDArray[np.int32]):
             total_lcm_sum += memoized_lcm(weights_sublist)
         return total_lcm_sum
 
-    r = len(weights)-1
+    r = len(weights)-1 
     if r==0:
         return -weights[0]
     elif r>0:
@@ -233,55 +143,153 @@ def very_ample_bound(weights:NDArray[np.int32]):
 
 
 
+
+class Weights:
+    """
+    Represents a list of weights and computes its reduced and well-formed equivalents
+    """
+    def __init__(self, weights: list):
+        weights.sort() # sort the weights 
+        self.weights = np.array(weights)
+        
+        # Compute the greatest common divisor (GCD) of all weights
+        self.gcd = np.array(np.gcd.reduce(weights))
+        
+        # Compute the reduced weights by dividing each weight by the GCD
+        self.reduced_weights = np.array((weights / self.gcd).astype(int))
+        
+        # Compute GCDs of the reduced weights with each element removed
+        self.sub_gcd = np.array(reduce_arr(np.gcd, self.reduced_weights))   
+
+        # Compute the least common multiples (LCM) of these GCDs
+        self.sub_lcm_of_sub_gcd = np.array(reduce_arr(np.lcm, self.sub_gcd)) 
+       
+        # Calculate the well-formed weights
+        self.wellformed_weights = np.array((self.reduced_weights / self.sub_lcm_of_sub_gcd).astype(int))
+        
+        # Compute the LCM of sub_gcd
+        self.lcm_of_sub_gcd = np.array(np.lcm.reduce(self.sub_gcd))
+       
+        # lcm of the weights
+        self.lcm = np.array(np.lcm.reduce(self.weights))
+        #m = np.array(np.lcm.reduce(self.W.wellformed_weights))
+
+    def is_reduced(self):
+        """
+        Check if the weights are reduced.
+        """
+        return self.weights == self.reduced_weights
+    
+    def is_wellformed(self):
+        """
+        Check if the weights are well-formed.
+        """
+        return self.weights == self.wellformed_weights
+    
+
+class TwistedSheaf:
+    """
+    Represents a twisted sheaf \Ocal_{P(a)}(deg) and reduces it when possible, calculates its dimension.
+    """
+    def __init__(self, W: Weights, degree: int):
+        self.W = W  # Associated weight class
+        self.degree = degree  # Original degree before weight reduction
+        self.calculate_well_formed_degree()  # Calculate the well-formed degree if possible
+
+
+    def is_deg_reducible(self):
+        temp = self.degree / self.W.gcd # temporary reduced degree
+        precision = 1e-10
+        
+        # Check if the reduced degree temp is effectively an integer
+        if abs(temp - int(temp)) < precision:
+            return True
+        else:
+            return False
+
+    def calculate_well_formed_degree(self):
+        """
+        Computes the well-formed degree if the degree can be reduced.
+        """
+        if self.is_deg_reducible():
+
+            # Set the reduced degree
+            self.reduced_degree = int(self.degree / self.W.gcd)
+            
+            # Calculate unique bi values for each (ai, si) pair
+            self.B = [uniquebi(ai, si, self.reduced_degree) for ai, si in zip(self.W.reduced_weights, self.W.sub_gcd)]
+            
+            # Compute the well-formed degree using the formula: phi(d) in the thesis
+            self.wellformed_degree = (self.reduced_degree - np.dot(self.B, self.W.reduced_weights)) / self.W.lcm_of_sub_gcd
+        
+        else:
+            self.wellformed_degree = None
+
+    def is_ample(self):
+        if self.degree == self.W.lcm:  #m, I think this works even if degree is not reduced or well-formed but not sure.
+            return True
+        else:
+            return False
+
+    def is_very_ample(self): # place holders for now
+        """
+        Check if the twisted sheaf is very ample.
+        """
+        if self.wellformed_degree is not None:
+            if self.wellformed_degree: #.... check if deg=nm ie if m divides deg if yes then 
+                n = 0
+                if n > 0 and n > very_ample_bound(self.W.wellformed_weights)/self.W.lcm: #change lcm to wellformed-weights lcm
+                    return True
+                else:
+                    return False
+            else:
+                return False
+        else:
+            return None #do again but with self.degree
+
+
+   
+class LinearSystem(TwistedSheaf):
+    def __init__(self, degree: int, weights: Weights):
+        super().__init__(weights, degree)
+        self.calculate_dimension()  # Calculate the dimension of the twisted sheaf  
+
+    def calculate_dimension(self):
+        """
+        Computes the dimension of the linear system.
+        """
+       # Calculate the well-formed degree if possible
+        self.calculate_well_formed_degree()
+
+        # Computes the dimension on the normalized weights and degree (normalized = reduced + well-formed)
+        if self.wellformed_degree is not None:
+            self.dimension = dimrec(self.W.wellformed_weights, self.wellformed_degree)-1
+        else :
+            self.dimension = dimrec(self.W.weights, self.degree)-1
+    
+ 
 class WeightedProjectiveSpace:
     
     def __init__(self, W:Weights):
         self.W = W # weights
         self.embedding_dimension = self.embeds_into()
 
-    def embeds_into(self)->int:
+    def embeds_into(self)->int: #improve this also
         m = np.array(np.lcm.reduce(self.W.wellformed_weights))
-        nGm = np.ceil(very_ample_bound(self.W.wellformed_weights)/m)
         G = very_ample_bound(self.W.wellformed_weights)
+        n =  np.int64(np.ceil(G/m))
         self.m = m
         self.G = G
         self.nGm1 = G/m
-        self.nGm = nGm
-        if nGm < 1:
-            deg_mn = m  #0 pb chekc >0
+        self.nGm = n
+        print(n, G/m)
+        if n < 1:
+            deg_mn = m  # n = ceil(G/m) = 1
         else:
-            deg_mn = nGm*m
+            deg_mn = n*m
         linsys = LinearSystem(Weights(self.W.wellformed_weights), np.array(np.int64(deg_mn)))
         self.embedding_linear_system = linsys
         N = linsys.dimension-1
         return N
         # return the dimension of the projective space in which it embeds into
 
-
-w09 = Weights([1,4,5,10])
-w10 = Weights([1,2,6,9])
-w11 = Weights([1,2,3,6])
-w12 = Weights([1,3,8,12])
-w13 = Weights([1,6,14,21])
-w14 = Weights([2,3,10,15])
-w15 = Weights([1,6,10,15])
-
-sigmas = [20,18,12,24,42,30,60] # table 3
-gplusone = [22,29,25,25,22,16,444] # table 2
-numbers = ['9','10','11','12','13','14','BelRob']
-
-i =0 
-for w in [w09, w10, w11, w12, w13, w14,w15]:
-    wps=WeightedProjectiveSpace(w)
-    print(" CASE ", numbers[i])
-    print("weights Q = ", wps.W.wellformed_weights)
-    print("m=lcm(Q) = ", wps.m)
-    print("G(Q) = ",wps.G)
-    print("G(Q)/m =",wps.nGm1)
-    print("G(Q)/m < n = ", wps.nGm)
-    print("deg = nm = ", wps.embedding_linear_system.degree)
-    print("dimension N = ", wps.embedding_dimension)
-    print("Bruno's sigma = nm = ", sigmas[i])
-    print("Bruno's N = g+1 = ", gplusone[i])
-    print("-------------------")
-    i+=1
