@@ -91,7 +91,7 @@ def uniquebi(a:int, s:int, d:int, verbose=False):
     return b_val
 
 
-def reduce_arr(func, arr: list) -> list:
+def reduce_arr(func, arr: list) -> list:  # solve bug if arr is only one element long
     """
     Applies a reduction function to the array with each element individually removed.
     
@@ -105,6 +105,8 @@ def reduce_arr(func, arr: list) -> list:
     
     output = []
     
+    print(f"Input array: {arr}")
+    #if len(arr) >= 1:
     # Loop through each index of the array
     for i in range(len(arr)):
         # Create a new array with the i-th element removed
@@ -112,6 +114,10 @@ def reduce_arr(func, arr: list) -> list:
         
         # Apply the reduction function to the modified array and store the result
         output.append(func.reduce(arrhat))
+
+    #elif len(arr) == 1: # solve bug if arr is only one element long
+        # If the array has only one element, return that element as the result
+     #   output.append(arr[0])
     
     # Return the list of results
     return output
@@ -142,6 +148,33 @@ def very_ample_bound(weights:NDArray[np.int32]):
         return -weights.sum() + temp_sum/r
 
 
+def very_ample_bound_recursive(weights: NDArray[np.int32]) -> float: # slightly slower than the iterative version
+    # Convert weights to tuple for hashing
+    weights_tuple = tuple(sorted(weights))
+
+    @lru_cache(maxsize=None)
+    def _helper(w: tuple[int, ...]) -> float:
+        r = len(w) - 1
+        if r == 0:
+            return -w[0]
+        total = 0.0
+        for i in range(r + 1):
+            # Remove i-th element without recreating full array
+            w_hat = w[:i] + w[i+1:]
+            total += _helper(w_hat)
+        m = np.lcm.reduce(np.array(w, dtype=int))
+        return (total + m) / r
+
+    return _helper(weights_tuple)
+
+
+#def my_gcd(x1=None, x2=None):
+#    if x1 is None and x2 is None:
+#        return 0 #1 for lcm
+#    elif x1 is not None and x2 is None:
+#        return x1
+#    else:
+#        return np.gcd(x1, x2)  # Use numpy's gcd function for two numbers
 
 
 class Weights:
@@ -236,9 +269,11 @@ class TwistedSheaf:
         Check if the twisted sheaf is very ample.
         """
         if self.wellformed_degree is not None:
-            if self.wellformed_degree: #.... check if deg=nm ie if m divides deg if yes then 
-                n = 0
-                if n > 0 and n > very_ample_bound(self.W.wellformed_weights)/self.W.lcm: #change lcm to wellformed-weights lcm
+            m = np.lcm.reduce(self.W.wellformed_weights)
+            if self.wellformed_degree % m == 0: #.... check if deg=nm ie if m divides deg if yes then 
+                G = very_ample_bound(self.W.wellformed_weights)
+                #n = np.int32(np.ceil(G/m)) #by def n>G/m
+                if self.wellformed_degree > 0 and self.wellformed_degree >= G: # check if degree is positive and at least G
                     return True
                 else:
                     return False
@@ -248,48 +283,49 @@ class TwistedSheaf:
             return None #do again but with self.degree
 
 
-   
+
 class LinearSystem(TwistedSheaf):
-    def __init__(self, degree: int, weights: Weights):
-        super().__init__(weights, degree)
+    def __init__(self, W: Weights, degree: int):
+        super().__init__(W, degree)
         self.calculate_dimension()  # Calculate the dimension of the twisted sheaf  
 
     def calculate_dimension(self):
         """
         Computes the dimension of the linear system.
         """
-       # Calculate the well-formed degree if possible
-        self.calculate_well_formed_degree()
-
         # Computes the dimension on the normalized weights and degree (normalized = reduced + well-formed)
         if self.wellformed_degree is not None:
             self.dimension = dimrec(self.W.wellformed_weights, self.wellformed_degree)-1
         else :
             self.dimension = dimrec(self.W.weights, self.degree)-1
+            
+        return self.dimension
     
  
 class WeightedProjectiveSpace:
     
     def __init__(self, W:Weights):
         self.W = W # weights
-        self.embedding_dimension = self.embeds_into()
+        self.calculate_embedding_dimension()
 
-    def embeds_into(self)->int: #improve this also
-        m = np.array(np.lcm.reduce(self.W.wellformed_weights))
+    def calculate_embedding_dimension(self)->int: #improve this also
+        m = np.lcm.reduce(self.W.wellformed_weights)
         G = very_ample_bound(self.W.wellformed_weights)
-        n =  np.int64(np.ceil(G/m))
+
         self.m = m
         self.G = G
-        self.nGm1 = G/m
-        self.nGm = n
-        print(n, G/m)
-        if n < 1:
-            deg_mn = m  # n = ceil(G/m) = 1
-        else:
+
+        if G/m < 0: # n>0 and n>G/m is true for all n>=1
+            n = 1
+            deg_mn = m  
+        else: # n>0 and n>G/m is true for all n>=ceil(G/m)
+            n = np.int32(np.ceil(G/m))
             deg_mn = n*m
-        linsys = LinearSystem(Weights(self.W.wellformed_weights), np.array(np.int64(deg_mn)))
+
+        linsys = LinearSystem(Weights(self.W.wellformed_weights), np.int32(deg_mn))
         self.embedding_linear_system = linsys
-        N = linsys.dimension-1
+        N = linsys.dimension
+        self.embedding_dimension = N  
         return N
         # return the dimension of the projective space in which it embeds into
 
