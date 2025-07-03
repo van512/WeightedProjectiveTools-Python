@@ -1,5 +1,5 @@
 import streamlit as st  # type: ignore
-from WeightedProjTools import *
+
 
 st.title("Welcome to the Weighted Projective Tools App!")
 

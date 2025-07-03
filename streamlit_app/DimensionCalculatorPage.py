@@ -1,5 +1,5 @@
 import streamlit as st # type: ignore
-from WeightedProjTools import *
+from weighted_proj_tools import * # type: ignore
 
 st.title("Linear System Dimension Calculator")
 
@@ -13,7 +13,7 @@ if st.button("Calculate"):
         a = list(map(int, weights_input.split())) # do such that can split also by comma or anything 
         d = int(degree_input)
 
-        w = Weights(a)
+        w = Weights(a) 
         Cad = LinearSystem(w, d)  # C_a[X]_d
         wps = WeightedProjectiveSpace(w)  # P(a)
 

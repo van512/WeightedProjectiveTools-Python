@@ -1,4 +1,4 @@
 import streamlit as st  # type: ignore
-from WeightedProjTools import *
+from weighted_proj_tools import * # type: ignore
 
 st.title("Sheaf (Very) Ampleness Checker")
