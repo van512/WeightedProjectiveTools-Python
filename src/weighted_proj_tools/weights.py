@@ -34,11 +34,11 @@ class Weights:
         """
         Check if the weights are reduced.
         """
-        return self.weights == self.reduced_weights
+        return np.array_equal(self.weights, self.reduced_weights)
     
     def is_wellformed(self):
         """
         Check if the weights are well-formed.
         """
-        return self.weights == self.wellformed_weights
+        return np.array_equal(self.weights, self.wellformed_weights)
     
