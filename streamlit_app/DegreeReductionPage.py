@@ -65,10 +65,14 @@ if st.session_state.get("run_calc", False):
 
 
 
-st.markdown("---")
+#st.markdown("---")
 
 # Explanation of degree reduction
-st.markdown(r"""
+
+
+_ = """ #actually explain degree reduction, rn it is a copy paste of weight reduction.
+
+st.markdown(r'''
 ### What is Degree Reduction?
 
 In algebraic geometry, **degree reduction** simplifies the weights that define a weighted projective space $\mathbb{P}(a_0,\dots,a_r)$ in two steps:
@@ -86,4 +90,5 @@ $$
 - $\bar{a}$ is the **well-formed weight** (after making all $s_i = 1$).
 
 So we can always assume the space is **well-formed** without loss of generality.
-""")
+''')
+"""

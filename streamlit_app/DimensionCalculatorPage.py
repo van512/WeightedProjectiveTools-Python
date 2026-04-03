@@ -3,7 +3,6 @@ from weighted_proj_tools import * # type: ignore
 
 st.title("Linear System Dimension Calculator")
 
-
 # Input fields
 weights_input = st.text_input("Enter the weights (a_0, ..., a_n) separated by spaces (a_i>0):")
 degree_input = st.text_input("Enter the degree (d):")
@@ -43,9 +42,9 @@ if st.button("Calculate"):
             f"This is because dim C\_{w.wellformed_weights}[X]\_{wps.embedding_linear_system.sheaf.degree} = {wps.embedding_linear_system.dimension}.\n\n"
         )
 
-        st.success(result_string+embedding_string)
+        st.write(result_string)#+embedding_string)
 
-
+        _ = '''
         st.write(
             f"The weight `{w.weights}` reduces to `{w.reduced_weights}` and it is equivalent to the well-formed weight `{w.wellformed_weights}`."
         )
@@ -63,7 +62,7 @@ if st.button("Calculate"):
             f"\\dim \\mathcal{{C}}_{{{w.wellformed_weights}}}[X]_{{{Cad.sheaf.wellformed_degree}}} = {Cad.dimension}"
         )
 
-
+        '''
 
     except ValueError:
         st.error("Error: Please enter positive integers.")
